@@ -271,7 +271,7 @@
 		<div id="start-overlay">
 			<div id="start-text">点击屏幕开始</div>
 		</div>
-		<audio id="bgm" loop>
+		<audio id="bgm" loop preload="auto">
 			<source src="bgm.mp3" type="audio/mpeg" />
 		</audio>
 		<div id="board"></div>
@@ -281,6 +281,11 @@
 			const startOverlay = document.getElementById('start-overlay')
 			const bgm = document.getElementById('bgm')
 			let hasStarted = false
+
+			// 初始化音频设置
+			bgm.volume = 0.5
+			// 预加载音频元数据（不自动播放）
+			bgm.load()
 
 			const messages = [
 				'保持好心情',
@@ -382,11 +387,6 @@
 				// 隐藏启动提示层
 				startOverlay.classList.add('hidden')
 
-				// 播放背景音乐
-				bgm.play().catch(err => {
-					console.log('自动播放被阻止，需要用户交互:', err)
-				})
-
 				// 开始创建初始卡片
 				for (let i = 0; i < initialCardCount; i++) {
 					setTimeout(createCard, i * (isMobile ? 60 : 40))
@@ -396,9 +396,34 @@
 				scheduleNextSpawn()
 			}
 
-			// 点击提示层开始
-			startOverlay.addEventListener('click', start)
-			startOverlay.addEventListener('touchstart', start)
+			// 处理启动事件 - 在用户手势的直接上下文中播放音频
+			function handleStart(event) {
+				if (hasStarted) return
+				event.preventDefault()
+				event.stopPropagation()
+
+				// 在用户手势事件中直接调用 play()（移动端要求必须在事件处理器中同步调用）
+				const playPromise = bgm.play()
+				if (playPromise !== undefined) {
+					playPromise
+						.then(() => {
+							// 音频播放成功，启动应用
+							start()
+						})
+						.catch(err => {
+							console.log('音频播放失败:', err)
+							// 即使音频播放失败，也继续启动其他功能
+							start()
+						})
+				} else {
+					// 旧浏览器可能返回 undefined
+					start()
+				}
+			}
+
+			// 点击提示层开始 - 使用 touchend 确保移动端能正确识别用户交互
+			startOverlay.addEventListener('click', handleStart, { passive: false })
+			startOverlay.addEventListener('touchend', handleStart, { passive: false })
 
 			function syncMobileMode() {
 				const nextIsMobile =
