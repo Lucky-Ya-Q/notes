@@ -387,9 +387,9 @@
 				// 隐藏启动提示层
 				startOverlay.classList.add('hidden')
 
-				// 开始创建初始卡片
+				// 开始创建初始卡片（调整时间间隔控制初始创建速度）
 				for (let i = 0; i < initialCardCount; i++) {
-					setTimeout(createCard, i * (isMobile ? 60 : 40))
+					setTimeout(createCard, i * (isMobile ? 150 : 100))
 				}
 
 				// 开始定时创建卡片
