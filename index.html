@@ -224,13 +224,64 @@
 					font-size: 12px;
 				}
 			}
+
+			#start-overlay {
+				position: fixed;
+				inset: 0;
+				background: rgba(255, 255, 255, 0.95);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				z-index: 999999;
+				cursor: pointer;
+				user-select: none;
+				backdrop-filter: blur(8px);
+				transition: opacity 0.5s ease, visibility 0.5s ease;
+			}
+
+			#start-overlay.hidden {
+				opacity: 0;
+				visibility: hidden;
+				pointer-events: none;
+			}
+
+			#start-text {
+				font-size: clamp(24px, 5vw, 48px);
+				font-weight: 600;
+				color: rgba(0, 0, 0, 0.7);
+				text-align: center;
+				animation: pulse 2s ease-in-out infinite;
+			}
+
+			@keyframes pulse {
+				0%, 100% {
+					opacity: 0.7;
+				}
+				50% {
+					opacity: 1;
+				}
+			}
+
+			#bgm {
+				display: none;
+			}
 		</style>
 	</head>
 	<body>
+		<div id="start-overlay">
+			<div id="start-text">点击屏幕开始</div>
+		</div>
+		<audio id="bgm" loop>
+			<source src="bgm.mp3" type="audio/mpeg" />
+		</audio>
 		<div id="board"></div>
 
 		<script>
 			const board = document.getElementById('board')
+			const startOverlay = document.getElementById('start-overlay')
+			const bgm = document.getElementById('bgm')
+			let hasStarted = false
+
 			const messages = [
 				'保持好心情',
 				'多喝水哦',
@@ -312,14 +363,42 @@
 			}
 
 			function scheduleNextSpawn() {
+				if (!hasStarted) return
 				clearTimeout(spawnTimer)
 				spawnTimer = setTimeout(() => {
-					if (!document.hidden) {
+					if (!document.hidden && hasStarted) {
 						createCard()
 					}
-					scheduleNextSpawn()
+					if (hasStarted) {
+						scheduleNextSpawn()
+					}
 				}, spawnInterval)
 			}
+
+			function start() {
+				if (hasStarted) return
+				hasStarted = true
+
+				// 隐藏启动提示层
+				startOverlay.classList.add('hidden')
+
+				// 播放背景音乐
+				bgm.play().catch(err => {
+					console.log('自动播放被阻止，需要用户交互:', err)
+				})
+
+				// 开始创建初始卡片
+				for (let i = 0; i < initialCardCount; i++) {
+					setTimeout(createCard, i * (isMobile ? 60 : 40))
+				}
+
+				// 开始定时创建卡片
+				scheduleNextSpawn()
+			}
+
+			// 点击提示层开始
+			startOverlay.addEventListener('click', start)
+			startOverlay.addEventListener('touchstart', start)
 
 			function syncMobileMode() {
 				const nextIsMobile =
@@ -330,7 +409,9 @@
 				maxCards = isMobile ? 120 : 180
 				spawnInterval = isMobile ? 700 : 400
 				document.body.classList.toggle('is-mobile', isMobile)
-				scheduleNextSpawn()
+				if (hasStarted) {
+					scheduleNextSpawn()
+				}
 			}
 
 			function handleBoardClick(event) {
@@ -670,14 +751,8 @@
 				}
 			}
 
-			for (let i = 0; i < initialCardCount; i++) {
-				setTimeout(createCard, i * (isMobile ? 60 : 40))
-			}
-
-			scheduleNextSpawn()
-
 			document.addEventListener('visibilitychange', () => {
-				if (!document.hidden) {
+				if (!document.hidden && hasStarted) {
 					scheduleNextSpawn()
 				}
 			})
