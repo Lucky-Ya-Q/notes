@@ -253,6 +253,51 @@
 				animation: pulse 2s ease-in-out infinite;
 			}
 
+			#generating-overlay {
+				position: fixed;
+				inset: 0;
+				background: rgba(255, 255, 255, 0.95);
+				display: none;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				z-index: 999999;
+				user-select: none;
+				backdrop-filter: blur(8px);
+				opacity: 0;
+				transition: opacity 0.5s ease, visibility 0.5s ease;
+			}
+
+			#generating-overlay.show {
+				display: flex;
+				opacity: 1;
+				visibility: visible;
+			}
+
+			#generating-overlay.hidden {
+				opacity: 0;
+				visibility: hidden;
+				pointer-events: none;
+			}
+
+			#generating-text {
+				font-size: clamp(28px, 6vw, 56px);
+				font-weight: 600;
+				color: rgba(0, 0, 0, 0.7);
+				text-align: center;
+				margin-bottom: 40px;
+			}
+
+			#generating-messages {
+				font-size: clamp(16px, 3vw, 24px);
+				font-weight: 400;
+				color: rgba(0, 0, 0, 0.5);
+				text-align: center;
+				min-height: 1.5em;
+				transition: opacity 0.3s ease;
+				opacity: 1;
+			}
+
 			@keyframes pulse {
 				0%, 100% {
 					opacity: 0.7;
@@ -271,16 +316,23 @@
 		<div id="start-overlay">
 			<div id="start-text">点击屏幕开始</div>
 		</div>
+		<div id="generating-overlay">
+			<div id="generating-text">文案生成中</div>
+			<div id="generating-messages"></div>
+		</div>
 		<audio id="bgm" loop preload="auto">
 			<source src="bgm.mp3" type="audio/mpeg" />
 		</audio>
 		<div id="board"></div>
 
 		<script>
-			const board = document.getElementById('board')
-			const startOverlay = document.getElementById('start-overlay')
-			const bgm = document.getElementById('bgm')
-			let hasStarted = false
+		const board = document.getElementById('board')
+		const startOverlay = document.getElementById('start-overlay')
+		const generatingOverlay = document.getElementById('generating-overlay')
+		const generatingText = document.getElementById('generating-text')
+		const generatingMessages = document.getElementById('generating-messages')
+		const bgm = document.getElementById('bgm')
+		let hasStarted = false
 
 			// 初始化音频设置
 			bgm.volume = 0.5
@@ -407,17 +459,78 @@
 				if (playPromise !== undefined) {
 					playPromise
 						.then(() => {
-							// 音频播放成功，启动应用
-							start()
+							// 音频播放成功，显示生成提示并轮播消息
+							showGeneratingMessages()
 						})
 						.catch(err => {
 							console.log('音频播放失败:', err)
-							// 即使音频播放失败，也继续启动其他功能
-							start()
+							// 即使音频播放失败，也继续显示生成提示
+							showGeneratingMessages()
 						})
 				} else {
 					// 旧浏览器可能返回 undefined
-					start()
+					showGeneratingMessages()
+				}
+			}
+
+			// 显示生成提示并轮播消息
+			function showGeneratingMessages() {
+				// 隐藏启动提示层
+				startOverlay.classList.add('hidden')
+				
+				// 显示生成提示层
+				generatingOverlay.classList.add('show')
+				
+				// 固定显示"文案生成中"标题
+				generatingText.textContent = '文案生成中'
+				
+				// 5秒后开始正常流程
+				const totalDuration = 7000 // 5秒
+				const messageInterval = 300 // 每个消息显示500ms
+				
+				let currentIndex = 0
+				
+				// 立即开始轮播messages（小字）
+				if (messages.length > 0) {
+					// 先显示第一个消息
+					generatingMessages.textContent = messages[0]
+					currentIndex = 1
+					
+					const messageTimer = setInterval(() => {
+						// 淡出当前文本
+						generatingMessages.style.opacity = '0'
+						
+						setTimeout(() => {
+							// 更新文本
+							if (currentIndex < messages.length) {
+								generatingMessages.textContent = messages[currentIndex]
+								currentIndex++
+							} else {
+								// 如果消息轮播完了但时间还没到，重新开始循环
+								currentIndex = 0
+								generatingMessages.textContent = messages[currentIndex]
+								currentIndex++
+							}
+							
+							// 淡入新文本
+							generatingMessages.style.opacity = '1'
+						}, 150) // 淡出时间
+					}, messageInterval)
+					
+					// 5秒后隐藏生成提示并开始正常流程
+					setTimeout(() => {
+						clearInterval(messageTimer)
+						generatingOverlay.classList.remove('show')
+						generatingOverlay.classList.add('hidden')
+						start()
+					}, totalDuration)
+				} else {
+					// 如果没有消息，直接5秒后开始
+					setTimeout(() => {
+						generatingOverlay.classList.remove('show')
+						generatingOverlay.classList.add('hidden')
+						start()
+					}, totalDuration)
 				}
 			}
 
