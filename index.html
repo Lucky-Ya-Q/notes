@@ -377,7 +377,7 @@
 			let isMobile =
 				pointerMediaQuery.matches || window.innerWidth <= 768
 			let maxCards = isMobile ? 120 : 180 // 限制 DOM 节点数量，减轻移动端压力
-			const initialCardCount = isMobile ? 18 : 30
+			const initialCardCount = isMobile ? 24 : 36
 			let spawnInterval = isMobile ? 700 : 400
 			let zIndexCursor = 200
 			let spawnTimer = null
@@ -441,7 +441,7 @@
 
 				// 开始创建初始卡片（调整时间间隔控制初始创建速度）
 				for (let i = 0; i < initialCardCount; i++) {
-					setTimeout(createCard, i * (isMobile ? 150 : 100))
+					setTimeout(createCard, i * (isMobile ? 120 : 80))
 				}
 
 				// 开始定时创建卡片
@@ -477,29 +477,29 @@
 			function showGeneratingMessages() {
 				// 隐藏启动提示层
 				startOverlay.classList.add('hidden')
-				
+
 				// 显示生成提示层
 				generatingOverlay.classList.add('show')
-				
+
 				// 固定显示"文案生成中"标题
 				generatingText.textContent = '文案生成中'
-				
+
 				// 5秒后开始正常流程
 				const totalDuration = 7000 // 5秒
 				const messageInterval = 300 // 每个消息显示500ms
-				
+
 				let currentIndex = 0
-				
+
 				// 立即开始轮播messages（小字）
 				if (messages.length > 0) {
 					// 先显示第一个消息
 					generatingMessages.textContent = messages[0]
 					currentIndex = 1
-					
+
 					const messageTimer = setInterval(() => {
 						// 淡出当前文本
 						generatingMessages.style.opacity = '0'
-						
+
 						setTimeout(() => {
 							// 更新文本
 							if (currentIndex < messages.length) {
@@ -511,12 +511,12 @@
 								generatingMessages.textContent = messages[currentIndex]
 								currentIndex++
 							}
-							
+
 							// 淡入新文本
 							generatingMessages.style.opacity = '1'
 						}, 150) // 淡出时间
 					}, messageInterval)
-					
+
 					// 5秒后隐藏生成提示并开始正常流程
 					setTimeout(() => {
 						clearInterval(messageTimer)
